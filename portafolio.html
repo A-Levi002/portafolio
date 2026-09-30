@@ -1,0 +1,2353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>app-security — Portafolio | moba-app</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ══════════════════════════════════════════════
+       TOKENS
+    ══════════════════════════════════════════════ */
+    :root {
+      --black:   #0a0a0a;
+      --black2:  #111111;
+      --black3:  #181818;
+      --black4:  #222222;
+      --white:   #f0f0f0;
+      --white2:  #b8b8b8;
+      --white3:  #666666;
+      --red:     #e63946;
+      --red-dim: rgba(230,57,70,.12);
+      --border:  rgba(255,255,255,.08);
+      --border2: rgba(255,255,255,.04);
+      --mono:    'Space Mono', monospace;
+      --sans:    'Space Grotesk', system-ui, sans-serif;
+      --r:       4px;
+      --gap:     1.25rem;
+    }
+
+    /* ══════════════════════════════════════════════
+       RESET
+    ══════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      scroll-behavior: smooth;
+      font-size: 16px;
+    }
+
+    body {
+      font-family: var(--sans);
+      background: var(--black);
+      color: var(--white);
+      line-height: 1.65;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::selection { background: var(--red); color: #fff; }
+
+    ::-webkit-scrollbar { width: 2px; }
+    ::-webkit-scrollbar-track { background: var(--black2); }
+    ::-webkit-scrollbar-thumb { background: var(--red); }
+
+    /* ══════════════════════════════════════════════
+       NOISE TEXTURE
+    ══════════════════════════════════════════════ */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      pointer-events: none;
+      opacity: .025;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 256px 256px;
+    }
+
+    /* ══════════════════════════════════════════════
+       PROGRESS LINE
+    ══════════════════════════════════════════════ */
+    #progress {
+      position: fixed; top: 0; left: 0; z-index: 2000;
+      height: 1px; width: 0;
+      background: var(--red);
+      transition: width .08s linear;
+    }
+
+    /* ══════════════════════════════════════════════
+       NAV
+    ══════════════════════════════════════════════ */
+    #nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2.5rem;
+      border-bottom: 1px solid var(--border2);
+      background: rgba(10,10,10,.85);
+      backdrop-filter: blur(20px) saturate(1.4);
+      transition: border-color .3s;
+    }
+    #nav.scrolled { border-color: var(--border); }
+
+    .nav-logo {
+      font-family: var(--mono);
+      font-size: .85rem;
+      font-weight: 700;
+      color: var(--white);
+      text-decoration: none;
+      letter-spacing: .04em;
+      display: flex; align-items: center; gap: .6rem;
+    }
+    .nav-logo .dot-red {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--red);
+      display: inline-block;
+      box-shadow: 0 0 8px var(--red);
+      animation: pulse 2.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: .5; transform: scale(.8); }
+    }
+
+    .nav-menu {
+      display: flex; gap: 0; list-style: none;
+    }
+    .nav-menu a {
+      font-family: var(--mono);
+      font-size: .72rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--white3);
+      text-decoration: none;
+      padding: .4rem .8rem;
+      border-radius: var(--r);
+      transition: color .2s, background .2s;
+    }
+    .nav-menu a:hover, .nav-menu a.active {
+      color: var(--white);
+      background: var(--black3);
+    }
+
+    .nav-burger {
+      display: none; flex-direction: column; gap: 4px;
+      background: none; border: none; cursor: pointer; padding: .5rem;
+    }
+    .nav-burger span {
+      display: block; width: 20px; height: 1px;
+      background: var(--white); transition: transform .25s, opacity .25s;
+    }
+    .nav-burger.open span:nth-child(1) { transform: translateY(5px) rotate(45deg); }
+    .nav-burger.open span:nth-child(2) { opacity: 0; }
+    .nav-burger.open span:nth-child(3) { transform: translateY(-5px) rotate(-45deg); }
+
+    @media (max-width: 820px) {
+      .nav-menu {
+        position: fixed; top: 56px; left: 0; right: 0;
+        flex-direction: column;
+        background: var(--black2);
+        border-bottom: 1px solid var(--border);
+        padding: 1rem 1.5rem;
+        transform: translateY(-110%);
+        transition: transform .3s cubic-bezier(.4,0,.2,1);
+      }
+      .nav-menu.open { transform: translateY(0); }
+      .nav-burger { display: flex; }
+      #nav { padding: 0 1.5rem; }
+    }
+
+    /* ══════════════════════════════════════════════
+       LAYOUT WRAPPER
+    ══════════════════════════════════════════════ */
+    .wrap {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 2.5rem;
+      position: relative; z-index: 1;
+    }
+
+    section { padding: 7rem 0; }
+    section + section { padding-top: 0; }
+
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--border) 20%, var(--border) 80%, transparent 100%);
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+
+    /* ══════════════════════════════════════════════
+       SECTION HEADER
+    ══════════════════════════════════════════════ */
+    .sec-label {
+      font-family: var(--mono);
+      font-size: .7rem;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: .75rem;
+      display: flex; align-items: center; gap: .5rem;
+    }
+    .sec-label::before {
+      content: '';
+      width: 20px; height: 1px;
+      background: var(--red);
+      display: inline-block;
+    }
+
+    .sec-title {
+      font-size: clamp(1.9rem, 3.5vw, 2.6rem);
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -.02em;
+      margin-bottom: .9rem;
+    }
+    .sec-title .accent { color: var(--red); }
+
+    .sec-body {
+      color: var(--white2);
+      font-size: 1rem;
+      max-width: 580px;
+      line-height: 1.75;
+    }
+
+    .sec-header { margin-bottom: 3.5rem; }
+
+    /* ══════════════════════════════════════════════
+       HERO
+    ══════════════════════════════════════════════ */
+    #hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      justify-content: center;
+      padding: 56px 0 0;
+      position: relative; overflow: hidden;
+    }
+
+    /* horizontal scan lines */
+    #hero::after {
+      content: '';
+      position: absolute; inset: 0; z-index: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(255,255,255,.012) 2px,
+        rgba(255,255,255,.012) 4px
+      );
+      pointer-events: none;
+    }
+
+    .hero-inner {
+      position: relative; z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+      min-height: calc(100vh - 56px);
+      padding: 4rem 0;
+    }
+
+    .hero-left { max-width: 560px; }
+
+    .hero-eyebrow {
+      font-family: var(--mono);
+      font-size: .72rem;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--white3);
+      margin-bottom: 1.5rem;
+      display: flex; align-items: center; gap: .75rem;
+    }
+    .hero-eyebrow::before {
+      content: '';
+      display: block; width: 28px; height: 1px;
+      background: var(--white3);
+    }
+
+    .hero-title {
+      font-size: clamp(3rem, 5vw, 4.5rem);
+      font-weight: 700;
+      line-height: 1.05;
+      letter-spacing: -.03em;
+      margin-bottom: 1.5rem;
+    }
+    .hero-title .block { display: block; }
+    .hero-title .red   { color: var(--red); }
+
+    .hero-desc {
+      color: var(--white2);
+      font-size: 1.05rem;
+      line-height: 1.8;
+      margin-bottom: 2.5rem;
+      max-width: 480px;
+    }
+
+    .hero-cta {
+      display: flex; gap: .75rem; flex-wrap: wrap;
+    }
+
+    .btn {
+      font-family: var(--mono);
+      font-size: .75rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: .75rem 1.5rem;
+      border-radius: var(--r);
+      text-decoration: none;
+      cursor: pointer;
+      border: 1px solid;
+      transition: background .2s, color .2s, border-color .2s, transform .15s;
+      display: inline-flex; align-items: center; gap: .5rem;
+    }
+    .btn:hover { transform: translateY(-1px); }
+
+    .btn-primary {
+      background: var(--red); color: #fff;
+      border-color: var(--red);
+    }
+    .btn-primary:hover { background: #c1121f; border-color: #c1121f; }
+
+    .btn-ghost {
+      background: transparent; color: var(--white2);
+      border-color: var(--border);
+    }
+    .btn-ghost:hover { border-color: rgba(255,255,255,.25); color: var(--white); }
+
+    /* hero right — spec card */
+    .hero-right { position: relative; }
+
+    .spec-card {
+      background: var(--black2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .spec-card-header {
+      background: var(--black3);
+      padding: .75rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: .6rem;
+      font-family: var(--mono); font-size: .72rem; color: var(--white3);
+    }
+    .wl { width: 10px; height: 10px; border-radius: 50%; }
+    .wl-r { background: #ff5f57; }
+    .wl-y { background: #febc2e; }
+    .wl-g { background: #28c840; }
+
+    .spec-card-body { padding: 1.5rem; }
+
+    .spec-row {
+      display: flex; justify-content: space-between; align-items: baseline;
+      padding: .6rem 0;
+      border-bottom: 1px solid var(--border2);
+      font-size: .88rem;
+    }
+    .spec-row:last-child { border-bottom: none; }
+    .spec-key  { color: var(--white3); font-family: var(--mono); font-size: .78rem; }
+    .spec-val  { color: var(--white); font-weight: 500; text-align: right; }
+    .spec-val.red { color: var(--red); }
+
+    .hero-stats {
+      display: grid; grid-template-columns: repeat(4,1fr);
+      gap: 1px;
+      background: var(--border2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      margin-top: 3rem;
+      overflow: hidden;
+    }
+    .hero-stat {
+      background: var(--black);
+      padding: 1.25rem 1rem;
+      text-align: center;
+    }
+    .hs-num {
+      font-family: var(--mono);
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--white);
+      display: block;
+      letter-spacing: -.02em;
+    }
+    .hs-label {
+      font-size: .72rem;
+      color: var(--white3);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-top: .2rem;
+    }
+
+    @media (max-width: 820px) {
+      .hero-inner { grid-template-columns: 1fr; gap: 3rem; padding: 3rem 0; }
+      .hero-right { display: none; }
+      .hero-stats { grid-template-columns: repeat(2,1fr); }
+    }
+
+    /* ══════════════════════════════════════════════
+       CARDS
+    ══════════════════════════════════════════════ */
+    .card {
+      background: var(--black2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 1.75rem;
+      transition: border-color .25s, transform .25s;
+    }
+    .card:hover {
+      border-color: rgba(255,255,255,.18);
+      transform: translateY(-2px);
+    }
+    .card-num {
+      font-family: var(--mono);
+      font-size: .68rem;
+      color: var(--white3);
+      letter-spacing: .1em;
+      margin-bottom: 1rem;
+    }
+    .card h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: .6rem;
+      letter-spacing: -.01em;
+    }
+    .card p {
+      color: var(--white2);
+      font-size: .88rem;
+      line-height: 1.7;
+    }
+    .card .tag-inline {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: .68rem;
+      background: var(--red-dim);
+      color: var(--red);
+      border: 1px solid rgba(230,57,70,.25);
+      padding: .15rem .5rem;
+      border-radius: 2px;
+      margin-top: .75rem;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px,1fr)); gap: var(--gap); }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: var(--gap); }
+    .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: var(--gap); }
+
+    /* ══════════════════════════════════════════════
+       CALLOUT (problem quote)
+    ══════════════════════════════════════════════ */
+    .callout {
+      border-left: 2px solid var(--red);
+      padding: 1.5rem 2rem;
+      background: var(--black2);
+      border-radius: 0 var(--r) var(--r) 0;
+      margin-bottom: 3rem;
+    }
+    .callout p {
+      font-size: 1.05rem;
+      color: var(--white2);
+      line-height: 1.8;
+      font-style: italic;
+    }
+    .callout-source {
+      font-family: var(--mono);
+      font-size: .72rem;
+      color: var(--white3);
+      margin-top: .75rem;
+      letter-spacing: .05em;
+    }
+
+    /* ══════════════════════════════════════════════
+       TABLE
+    ══════════════════════════════════════════════ */
+    .tbl-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      margin-bottom: 2.5rem;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: var(--black3); }
+    th {
+      padding: .85rem 1.25rem;
+      text-align: left;
+      font-family: var(--mono);
+      font-size: .7rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--white3);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: .9rem 1.25rem;
+      border-bottom: 1px solid var(--border2);
+      font-size: .88rem;
+      color: var(--white2);
+      vertical-align: top;
+    }
+    td:first-child {
+      font-family: var(--mono);
+      font-size: .78rem;
+      color: var(--white);
+      white-space: nowrap;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: var(--border2); }
+
+    /* ══════════════════════════════════════════════
+       ARCHITECTURE LAYERS
+    ══════════════════════════════════════════════ */
+    .arch-stack {
+      display: flex; flex-direction: column; gap: 1px;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+      margin-bottom: 2.5rem;
+    }
+
+    .arch-layer {
+      background: var(--black2);
+      padding: 1.5rem 1.75rem;
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+      border-bottom: 1px solid var(--border2);
+      transition: background .2s;
+    }
+    .arch-layer:last-child { border-bottom: none; }
+    .arch-layer:hover { background: var(--black3); }
+
+    .arch-layer-label {
+      font-family: var(--mono);
+      font-size: .72rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .arch-layer-label span {
+      display: block;
+      font-size: .62rem;
+      color: var(--white3);
+      margin-top: .3rem;
+      font-weight: 400;
+      letter-spacing: .06em;
+    }
+    .layer-fe { color: #7eb8e6; }
+    .layer-be { color: var(--red); }
+    .layer-db { color: #6ecf97; }
+
+    .chips {
+      display: flex; flex-wrap: wrap; gap: .4rem;
+    }
+    .chip {
+      font-family: var(--mono);
+      font-size: .7rem;
+      padding: .25rem .6rem;
+      background: var(--black3);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      color: var(--white2);
+      white-space: nowrap;
+    }
+
+    .arch-connector {
+      text-align: center;
+      padding: .5rem 0;
+      font-family: var(--mono);
+      font-size: .7rem;
+      color: var(--white3);
+      letter-spacing: .06em;
+    }
+
+    @media (max-width: 640px) {
+      .arch-layer { grid-template-columns: 1fr; }
+    }
+
+    /* ══════════════════════════════════════════════
+       CODE BLOCK
+    ══════════════════════════════════════════════ */
+    .code-block {
+      background: var(--black);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+    }
+    .code-top {
+      background: var(--black2);
+      padding: .6rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: .5rem;
+    }
+    .code-dot { width: 9px; height: 9px; border-radius: 50%; }
+    .cd-r { background: #ff5f57; }
+    .cd-y { background: #febc2e; }
+    .cd-g { background: #28c840; }
+    .code-filename {
+      margin-left: auto;
+      font-family: var(--mono); font-size: .7rem;
+      color: var(--white3);
+    }
+    pre {
+      padding: 1.5rem;
+      font-family: var(--mono);
+      font-size: .78rem;
+      line-height: 1.75;
+      color: #c9d1d9;
+      overflow-x: auto;
+      tab-size: 2;
+    }
+    .cm { color: #8b949e; }    /* comment */
+    .ck { color: #ff7b72; }    /* keyword */
+    .cs { color: #a5d6ff; }    /* string */
+    .cn { color: #f0883e; }    /* number / type */
+
+    /* ══════════════════════════════════════════════
+       TECH GRID
+    ══════════════════════════════════════════════ */
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
+      gap: 1px;
+      background: var(--border2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+    }
+    .tech-item {
+      background: var(--black);
+      padding: 1.5rem;
+      transition: background .2s;
+    }
+    .tech-item:hover { background: var(--black3); }
+    .tech-layer-tag {
+      font-family: var(--mono);
+      font-size: .63rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--white3);
+      margin-bottom: .5rem;
+    }
+    .tech-name {
+      font-size: .95rem;
+      font-weight: 600;
+      margin-bottom: .25rem;
+    }
+    .tech-role {
+      font-size: .8rem;
+      color: var(--white3);
+    }
+
+    /* ══════════════════════════════════════════════
+       PROPUESTA / AUTORÍA
+    ══════════════════════════════════════════════ */
+    .proposal-hero {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      align-items: start;
+      margin-bottom: 3.5rem;
+    }
+    @media (max-width: 820px) { .proposal-hero { grid-template-columns: 1fr; } }
+
+    .author-card {
+      background: var(--black2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 2rem;
+    }
+    .author-avatar {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: var(--red-dim);
+      border: 2px solid var(--red);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 1.25rem;
+      font-family: var(--mono);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--red);
+    }
+    .author-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -.01em;
+      margin-bottom: .25rem;
+    }
+    .author-role {
+      font-family: var(--mono);
+      font-size: .7rem;
+      letter-spacing: .08em;
+      color: var(--red);
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    .author-group {
+      display: inline-flex; align-items: center; gap: .4rem;
+      font-family: var(--mono);
+      font-size: .72rem;
+      letter-spacing: .06em;
+      color: var(--white3);
+      background: var(--black3);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: .3rem .75rem;
+    }
+    .author-group svg { width: 12px; height: 12px; }
+
+    .proposal-timeline {
+      display: flex; flex-direction: column; gap: 1.5rem;
+    }
+    .pt-item {
+      display: flex; gap: 1rem; align-items: flex-start;
+    }
+    .pt-icon {
+      width: 36px; height: 36px; flex-shrink: 0;
+      background: var(--black3);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .pt-icon svg { width: 16px; height: 16px; }
+    .pt-body h4 { font-size: .95rem; font-weight: 600; margin-bottom: .2rem; }
+    .pt-body p  { font-size: .83rem; color: var(--white2); line-height: 1.65; }
+
+    .merger-block {
+      background: var(--black2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 2rem;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 1.5rem;
+      align-items: center;
+      margin-top: 2rem;
+    }
+    @media (max-width: 640px) {
+      .merger-block { grid-template-columns: 1fr; }
+      .merger-arrow { transform: rotate(90deg); }
+    }
+    .merger-side { text-align: center; }
+    .merger-icon {
+      width: 48px; height: 48px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto .75rem;
+    }
+    .merger-icon.sec  { background: rgba(230,57,70,.15); border: 1px solid rgba(230,57,70,.3); }
+    .merger-icon.amb  { background: rgba(110,207,151,.12); border: 1px solid rgba(110,207,151,.25); }
+    .merger-side h4   { font-size: .9rem; font-weight: 600; margin-bottom: .2rem; }
+    .merger-side p    { font-size: .78rem; color: var(--white2); line-height: 1.6; }
+    .merger-arrow svg { width: 28px; height: 28px; color: var(--white3); }
+    .merger-result {
+      grid-column: 1 / -1;
+      margin-top: 1.25rem;
+      background: var(--black3);
+      border: 1px solid rgba(110,207,151,.2);
+      border-radius: var(--r);
+      padding: 1rem 1.5rem;
+      text-align: center;
+      font-size: .88rem;
+      color: var(--white2);
+      line-height: 1.7;
+    }
+    .merger-result strong { color: #6ecf97; }
+
+    /* ══════════════════════════════════════════════
+       PROTOTIPO EMBED
+    ══════════════════════════════════════════════ */
+    .proto-wrap {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--black2);
+    }
+    .proto-bar {
+      background: var(--black3);
+      padding: .65rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: .75rem;
+    }
+    .proto-dots { display: flex; gap: 5px; }
+    .proto-dot  { width: 10px; height: 10px; border-radius: 50%; }
+    .pd-r { background: #ff5f57; }
+    .pd-y { background: #febc2e; }
+    .pd-g { background: #28c840; }
+    .proto-url {
+      flex: 1;
+      background: var(--black2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: .25rem 1rem;
+      font-family: var(--mono);
+      font-size: .68rem;
+      color: var(--white3);
+      display: flex; align-items: center; gap: .4rem;
+    }
+    .proto-url svg { width: 11px; height: 11px; flex-shrink: 0; }
+    .proto-open {
+      font-family: var(--mono);
+      font-size: .68rem;
+      color: var(--white3);
+      text-decoration: none;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: .25rem .65rem;
+      transition: color .2s, border-color .2s;
+      display: flex; align-items: center; gap: .35rem;
+    }
+    .proto-open:hover { color: var(--white); border-color: rgba(255,255,255,.25); }
+    .proto-open svg  { width: 11px; height: 11px; }
+    .proto-frame {
+      width: 100%;
+      height: 680px;
+      border: none;
+      display: block;
+    }
+    @media (max-width: 820px) { .proto-frame { height: 520px; } }
+
+    /* ══════════════════════════════════════════════
+       C4 DIAGRAMS
+    ══════════════════════════════════════════════ */
+    .c4-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--gap);
+    }
+
+    .c4-level {
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+    }
+    .c4-level-header {
+      background: var(--black3);
+      padding: .75rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: .72rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--white3);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .c4-level-body { padding: 1.5rem; background: var(--black2); }
+
+    .c4-flow {
+      display: flex; align-items: center; flex-wrap: wrap; gap: .75rem;
+    }
+    .c4-node {
+      background: var(--black3);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: .6rem 1rem;
+      font-size: .85rem;
+      font-weight: 500;
+    }
+    .c4-node.primary {
+      border-color: var(--red);
+      color: var(--red);
+      background: var(--red-dim);
+    }
+    .c4-arrow {
+      font-family: var(--mono);
+      font-size: .7rem;
+      color: var(--white3);
+      white-space: nowrap;
+    }
+
+    /* ══════════════════════════════════════════════
+       TIMELINE
+    ══════════════════════════════════════════════ */
+    .timeline { display: flex; flex-direction: column; gap: 0; }
+
+    .tl-item {
+      display: grid;
+      grid-template-columns: 140px 1px 1fr;
+      gap: 0 1.5rem;
+      padding-bottom: 2rem;
+    }
+    .tl-item:last-child { padding-bottom: 0; }
+
+    .tl-label {
+      font-family: var(--mono);
+      font-size: .72rem;
+      letter-spacing: .06em;
+      color: var(--white3);
+      text-align: right;
+      padding-top: .1rem;
+    }
+
+    .tl-line {
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .tl-dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--red);
+      flex-shrink: 0;
+      position: relative; z-index: 1;
+    }
+    .tl-track {
+      flex: 1;
+      width: 1px;
+      background: var(--border);
+      margin-top: 4px;
+    }
+    .tl-item:last-child .tl-track { display: none; }
+
+    .tl-content h4 {
+      font-size: .95rem;
+      font-weight: 600;
+      margin-bottom: .4rem;
+      letter-spacing: -.01em;
+    }
+    .tl-content p {
+      font-size: .85rem;
+      color: var(--white2);
+      line-height: 1.7;
+    }
+
+    @media (max-width: 560px) {
+      .tl-item { grid-template-columns: 80px 1px 1fr; }
+    }
+
+    /* ══════════════════════════════════════════════
+       STATUS
+    ══════════════════════════════════════════════ */
+    .status {
+      display: inline-flex; align-items: center; gap: .35rem;
+      font-family: var(--mono);
+      font-size: .68rem;
+      letter-spacing: .06em;
+      padding: .2rem .6rem;
+      border-radius: 2px;
+      border: 1px solid;
+    }
+    .status-dot { width: 5px; height: 5px; border-radius: 50%; }
+    .st-done    { color: #6ecf97; border-color: rgba(110,207,151,.25); background: rgba(110,207,151,.06); }
+    .st-done .status-dot    { background: #6ecf97; }
+    .st-warn    { color: #f4c430; border-color: rgba(244,196,48,.25); background: rgba(244,196,48,.06); }
+    .st-warn .status-dot    { background: #f4c430; }
+    .st-pending { color: var(--white3); border-color: var(--border); }
+    .st-pending .status-dot { background: var(--white3); }
+
+    /* ══════════════════════════════════════════════
+       RESULT ROWS
+    ══════════════════════════════════════════════ */
+    .result-list { list-style: none; display: flex; flex-direction: column; gap: 1px; }
+    .result-list li {
+      background: var(--black2);
+      border: 1px solid var(--border2);
+      padding: 1rem 1.25rem;
+      font-size: .88rem;
+      display: flex; gap: 1rem; align-items: flex-start;
+      transition: border-color .2s;
+    }
+    .result-list li:first-child { border-radius: var(--r) var(--r) 0 0; }
+    .result-list li:last-child  { border-radius: 0 0 var(--r) var(--r); }
+    .result-list li:hover { border-color: rgba(255,255,255,.14); }
+    .rl-mark {
+      font-family: var(--mono);
+      font-size: .7rem;
+      color: var(--red);
+      flex-shrink: 0;
+      padding-top: .05rem;
+    }
+    .rl-text { color: var(--white2); line-height: 1.65; }
+
+    /* ══════════════════════════════════════════════
+       ODS BLOCK
+    ══════════════════════════════════════════════ */
+    .ods-block {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 3rem;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 2.5rem;
+      background: var(--black2);
+    }
+    .ods-num {
+      font-family: var(--mono);
+      font-size: 5.5rem;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--white);
+      letter-spacing: -.04em;
+    }
+    .ods-right h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: .5rem;
+    }
+    .ods-right p {
+      color: var(--white2);
+      font-size: .9rem;
+      line-height: 1.75;
+      margin-bottom: 1.5rem;
+    }
+    .ods-items {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px,1fr));
+      gap: .5rem;
+    }
+    .ods-item {
+      background: var(--black3);
+      border: 1px solid var(--border2);
+      border-radius: var(--r);
+      padding: .75rem 1rem;
+      font-size: .83rem;
+      color: var(--white2);
+      line-height: 1.55;
+    }
+    .ods-item strong {
+      display: block;
+      font-family: var(--mono);
+      font-size: .65rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #6ecf97;
+      margin-bottom: .25rem;
+    }
+
+    @media (max-width: 640px) {
+      .ods-block { grid-template-columns: 1fr; gap: 1.5rem; }
+      .ods-num   { font-size: 3.5rem; }
+    }
+
+    /* ══════════════════════════════════════════════
+       FOOTER
+    ══════════════════════════════════════════════ */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 3rem 2.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+    .footer-left {}
+    .footer-logo {
+      font-family: var(--mono);
+      font-size: .9rem;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: .35rem;
+      display: flex; align-items: center; gap: .5rem;
+    }
+    .footer-logo .dot-f {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--red);
+    }
+    .footer-sub {
+      font-size: .8rem;
+      color: var(--white3);
+    }
+    .footer-right {
+      font-family: var(--mono);
+      font-size: .7rem;
+      color: var(--white3);
+      text-align: right;
+      line-height: 1.8;
+    }
+
+    /* ══════════════════════════════════════════════
+       SCROLL TO TOP
+    ══════════════════════════════════════════════ */
+    #top-btn {
+      position: fixed; bottom: 2rem; right: 2rem; z-index: 900;
+      width: 36px; height: 36px;
+      background: var(--black2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      font-family: var(--mono); font-size: .75rem;
+      color: var(--white2);
+      opacity: 0; pointer-events: none;
+      transition: opacity .3s, border-color .2s, transform .15s;
+    }
+    #top-btn.visible { opacity: 1; pointer-events: all; }
+    #top-btn:hover {
+      border-color: rgba(255,255,255,.25);
+      color: var(--white);
+      transform: translateY(-2px);
+    }
+
+    /* ══════════════════════════════════════════════
+       FADE IN
+    ══════════════════════════════════════════════ */
+    .fi {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity .55s ease, transform .55s ease;
+    }
+    .fi.in { opacity: 1; transform: translateY(0); }
+    .fi.d1 { transition-delay: .1s; }
+    .fi.d2 { transition-delay: .2s; }
+    .fi.d3 { transition-delay: .3s; }
+  </style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<!-- ─────────────────────── NAV ─────────────────────── -->
+<nav id="nav">
+  <a class="nav-logo" href="#hero">
+    <span class="dot-red"></span>
+    app-security
+    <span style="font-family:var(--sans);font-size:.65rem;font-weight:400;color:var(--white3);letter-spacing:.04em;">/ moba-app</span>
+  </a>
+  <ul class="nav-menu" id="nav-menu">
+    <li><a href="#propuesta">Propuesta</a></li>
+    <li><a href="#prototipo">Prototipo</a></li>
+    <li><a href="#problema">Problema</a></li>
+    <li><a href="#requerimientos">Requisitos</a></li>
+    <li><a href="#arquitectura">Arquitectura</a></li>
+    <li><a href="#stack">Stack</a></li>
+    <li><a href="#c4">C4 Model</a></li>
+    <li><a href="#resultados">Resultados</a></li>
+    <li><a href="#ods">ODS 12</a></li>
+  </ul>
+  <button class="nav-burger" id="burger" aria-label="Abrir menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- ─────────────────────── HERO ─────────────────────── -->
+<section id="hero">
+  <div class="wrap">
+    <div class="hero-inner">
+
+      <!-- left -->
+      <div class="hero-left">
+        <p class="hero-eyebrow">Sistema de emergencias — ODS 12</p>
+        <h1 class="hero-title">
+          <span class="block">Alerta y</span>
+          <span class="block">respuesta</span>
+          <span class="block red">táctica.</span>
+        </h1>
+        <p class="hero-desc">
+          Aplicación móvil que permite a ciudadanos reportar emergencias
+          en tiempo real, recibir orientación por inteligencia artificial
+          y coordinar el despacho de unidades especializadas: patrulla,
+          ambulancia y unidad química. Construida sobre React Native,
+          Supabase y Gemini AI.
+        </p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="#propuesta">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Ver propuesta
+          </a>
+          <a class="btn btn-ghost" href="#prototipo">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            Ver prototipo
+          </a>
+          <a class="btn btn-ghost" href="#resultados">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Resultados
+          </a>
+        </div>
+
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <span class="hs-num" data-target="9">0</span>
+            <div class="hs-label">Edge Functions</div>
+          </div>
+          <div class="hero-stat">
+            <span class="hs-num" data-target="15">0</span>
+            <div class="hs-label">Tests OK</div>
+          </div>
+          <div class="hero-stat">
+            <span class="hs-num" data-target="43">0</span>
+            <div class="hs-label">Archivos mod.</div>
+          </div>
+          <div class="hero-stat">
+            <span class="hs-num" data-target="3">0</span>
+            <div class="hs-label">Capas arq.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- right — spec card -->
+      <div class="hero-right">
+        <div class="spec-card">
+          <div class="spec-card-header">
+            <span class="wl wl-r"></span>
+            <span class="wl wl-y"></span>
+            <span class="wl wl-g"></span>
+            app-security / spec
+          </div>
+          <div class="spec-card-body">
+            <div class="spec-row">
+              <span class="spec-key">platform</span>
+              <span class="spec-val">React Native / Expo SDK 57</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-key">backend</span>
+              <span class="spec-val">Supabase Edge Functions</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-key">runtime</span>
+              <span class="spec-val">Deno / TypeScript</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-key">ai_model</span>
+              <span class="spec-val">gemini-3.6-flash</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-key">ai_fallback</span>
+              <span class="spec-val">openrouter/inkling:free</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-key">database</span>
+              <span class="spec-val">Supabase Postgres + RLS</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-key">maps</span>
+              <span class="spec-val">MapLibre RN (OSM/Carto)</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-key">auth</span>
+              <span class="spec-val">Supabase Auth / JWT</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-key">triage</span>
+              <span class="spec-val red">sin_riesgo / dudoso / emergencia</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-key">ods</span>
+              <span class="spec-val">12 — Produccion Responsable</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─────────────────────── PROPUESTA ─────────────────────── -->
+<section id="propuesta">
+  <div class="wrap">
+    <div class="sec-header fi">
+      <p class="sec-label">00 — Propuesta e Iniciativa</p>
+      <h2 class="sec-title">De la idea al sistema:<br/><span class="accent">dos propuestas, un objetivo</span></h2>
+      <p class="sec-body">
+        Este proyecto nació de la propuesta original de Amet Levit Zambrana Chambi, desarrollada
+        e integrada por el equipo <strong style="color:var(--white)">moba-app</strong>, 
+        fusionando la propuesta de seguridad ciudadana con el módulo ambiental para alcanzar el ODS 12.
+      </p>
+    </div>
+
+    <div class="proposal-hero fi d1">
+      <!-- Autor -->
+      <div class="author-card">
+        <div class="author-avatar">AL</div>
+        <div class="author-name">Amet Levit Zambrana Chambi</div>
+        <div class="author-role">Proponente &amp; Desarrollador Principal</div>
+        <p style="font-size:.85rem;color:var(--white2);line-height:1.75;margin-bottom:1.25rem;">
+          Propuso el sistema de alerta táctica de emergencias ciudadanas como solución al problema
+          de la brecha entre incidente y respuesta coordinada. La propuesta original incluía el módulo
+          de seguridad, triaje IA y despacho de unidades especializadas.
+        </p>
+        <div class="author-group">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Grupo: moba-app
+        </div>
+      </div>
+
+      <!-- Timeline de propuesta -->
+      <div class="proposal-timeline">
+        <div class="pt-item">
+          <div class="pt-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#e63946" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div class="pt-body">
+            <h4>Propuesta original — Seguridad ciudadana</h4>
+            <p>Sistema de reporte de emergencias (delitos, incidentes médicos) con triaje IA y despacho de patrullas y ambulancias. Propuesto por Amet Levit Zambrana Chambi para reducir el tiempo de respuesta en comunidades urbanas.</p>
+          </div>
+        </div>
+        <div class="pt-item">
+          <div class="pt-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#6ecf97" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="pt-body">
+            <h4>Integración — Propuesta ambiental</h4>
+            <p>Una segunda propuesta del grupo aportó el módulo ambiental: gestión de materiales peligrosos, derrames industriales y residuos químicos. Se integró al sistema base para ampliar el alcance hacia el ODS 12.</p>
+          </div>
+        </div>
+        <div class="pt-item">
+          <div class="pt-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#7eb8e6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          </div>
+          <div class="pt-body">
+            <h4>Resultado — app-security / ODS 12</h4>
+            <p>La fusión de ambas propuestas produce un sistema unificado que cubre seguridad, salud y medio ambiente, alineado directamente con las metas 12.4 y 12.5 del ODS 12: producción y consumo responsables.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Merger block -->
+    <div class="merger-block fi d2">
+      <div class="merger-side">
+        <div class="merger-icon sec">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e63946" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h4>Propuesta Seguridad</h4>
+        <p>Amet Levit<br/>Triaje IA · Despacho · Patrulla · Ambulancia</p>
+      </div>
+      <div class="merger-arrow">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </div>
+      <div class="merger-side">
+        <div class="merger-icon amb">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6ecf97" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 22V11l11-9 11 9v11"/><path d="M9 22V12h6v10"/></svg>
+        </div>
+        <h4>Propuesta Ambiental</h4>
+        <p>moba-app<br/>Materiales peligrosos · Unidad química · ODS 12</p>
+      </div>
+      <div class="merger-result">
+        <strong>app-security</strong> — Sistema unificado de alerta y respuesta táctica que integra seguridad ciudadana,
+        atención médica y gestión ambiental de residuos peligrosos bajo un solo canal de reporte, triaje IA y despacho coordinado,
+        alcanzando el <strong>ODS 12</strong> (metas 12.4 y 12.5).
+      </div>
+    </div>
+
+    <!-- ODS link cards -->
+    <div class="grid-3 fi d3" style="margin-top:2rem;">
+      <div class="card">
+        <div class="card-num" style="color:var(--red);">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px;"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          ODS 3 — Salud
+        </div>
+        <h3>Vida y bienestar</h3>
+        <p>El módulo de emergencias médicas conecta al ciudadano con ambulancias en minutos. El triaje IA determina severidad y emite recomendaciones de primeros auxilios antes de la llegada de la unidad.</p>
+        <span class="tag-inline">RF-02 · RF-03</span>
+      </div>
+      <div class="card">
+        <div class="card-num" style="color:var(--red);">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          ODS 11 — Ciudades
+        </div>
+        <h3>Comunidades seguras</h3>
+        <p>El módulo criminal reduce el tiempo de respuesta policial en comunidades urbanas. El historial de reportes genera datos geoespaciales para identificar zonas de mayor riesgo.</p>
+        <span class="tag-inline">RF-01 · RF-08</span>
+      </div>
+      <div class="card">
+        <div class="card-num" style="color:#6ecf97;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M1 22V11l11-9 11 9v11"/><path d="M9 22V12h6v10"/></svg>
+          ODS 12 — Producción
+        </div>
+        <h3>Consumo responsable</h3>
+        <p>El módulo ambiental (propuesta integrada) gestiona derrames y residuos peligrosos. Despacho de unidades químicas con protocolo específico y catálogo offline de actuación.</p>
+        <span class="tag-inline">RF-04 · ODS 12.4 / 12.5</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─────────────────────── PROTOTIPO ─────────────────────── -->
+<section id="prototipo">
+  <div class="wrap">
+    <div class="sec-header fi">
+      <p class="sec-label">00b — Prototipo interactivo</p>
+      <h2 class="sec-title">La app funcionando<br/><span class="accent">en tiempo real</span></h2>
+      <p class="sec-body">
+        Versión desplegada del prototipo de app-security. Podés interactuar con el flujo completo:
+        login, reporte de emergencias, chat de triaje IA y mapa de incidentes.
+      </p>
+    </div>
+
+    <div class="proto-wrap fi d1">
+      <div class="proto-bar">
+        <div class="proto-dots">
+          <span class="proto-dot pd-r"></span>
+          <span class="proto-dot pd-y"></span>
+          <span class="proto-dot pd-g"></span>
+        </div>
+        <div class="proto-url">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          secure-os-two.vercel.app
+        </div>
+        <a class="proto-open" href="https://secure-os-two.vercel.app/" target="_blank" rel="noopener">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Abrir en nueva pestaña
+        </a>
+      </div>
+      <iframe
+        class="proto-frame"
+        src="https://secure-os-two.vercel.app/"
+        title="app-security prototipo interactivo"
+        loading="lazy"
+        allow="geolocation; camera; microphone"
+      ></iframe>
+    </div>
+
+    <div class="grid-3 fi d2" style="margin-top:2rem;">
+      <div class="card">
+        <div class="card-num">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e63946" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px;"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          React Native / Expo
+        </div>
+        <h3>Multiplataforma nativo</h3>
+        <p>El prototipo corre en iOS, Android y web desde un único codebase TypeScript con Expo SDK 57.</p>
+      </div>
+      <div class="card">
+        <div class="card-num">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e63946" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Triaje IA activo
+        </div>
+        <h3>Gemini 3.6 Flash en vivo</h3>
+        <p>El chat de emergencias usa el modelo real. Podés probar los tres flujos: ambiental, médico y criminal.</p>
+      </div>
+      <div class="card">
+        <div class="card-num">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e63946" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px;"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          Mapa interactivo
+        </div>
+        <h3>MapLibre + OSM</h3>
+        <p>Mapa con marcadores de incidentes usando tiles de OpenStreetMap. Sin API key ni costo de licencia.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="problema">
+  <div class="wrap">
+    <div class="sec-header fi">
+      <p class="sec-label">01 — Problema</p>
+      <h2 class="sec-title">La brecha entre el incidente<br/>y la respuesta coordinada</h2>
+      <p class="sec-body">
+        En comunidades urbanas con actividad industrial, los incidentes ocurren en segundos
+        pero la respuesta tarda minutos o no llega coordinada. Ese intervalo es el problema
+        que app-security ataca.
+      </p>
+    </div>
+
+    <div class="callout fi d1">
+      <p>
+        "Los ciudadanos que presencian o sufren emergencias — vertidos de materiales peligrosos,
+        delitos, ataques, incidentes ambientales — no tienen un mecanismo rápido y efectivo para
+        reportar lo ocurrido, recibir orientación sobre qué hacer y lograr un despacho coordinado
+        de unidades de emergencia. Esto resulta en respuestas lentas o inadecuadas, materiales
+        peligrosos no gestionados correctamente y posible contaminación ambiental."
+      </p>
+      <p class="callout-source">— Situacion problematica identificada / ODS 12</p>
+    </div>
+
+    <div class="grid-3 fi d2">
+      <div class="card">
+        <div class="card-num">01 / 03</div>
+        <h3>Materiales peligrosos sin gestionar</h3>
+        <p>
+          Zonas industriales urbanas generan residuos y derrames que los ciudadanos no saben
+          cómo reportar ni cómo manejar. Sin un canal directo a una unidad química especializada,
+          el material permanece sin atención y contamina el ambiente.
+        </p>
+        <span class="tag-inline">ODS 12.4 / 12.5</span>
+      </div>
+      <div class="card">
+        <div class="card-num">02 / 03</div>
+        <h3>Despacho descoordinado de unidades</h3>
+        <p>
+          Sin triaje previo, las centrales de emergencia no saben si enviar una patrulla,
+          una ambulancia o una unidad química. Esto genera duplicación de recursos, demoras
+          o envío de la unidad incorrecta al incidente.
+        </p>
+        <span class="tag-inline">RF3 — Despacho coordinado</span>
+      </div>
+      <div class="card">
+        <div class="card-num">03 / 03</div>
+        <h3>Ciudadano sin orientacion inmediata</h3>
+        <p>
+          Mientras se espera la respuesta de emergencia, el ciudadano no sabe qué hacer:
+          si alejarse, si administrar primeros auxilios, si cerrar el área. La falta de
+          orientación en los primeros minutos puede agravar la situación.
+        </p>
+        <span class="tag-inline">RF2 — Traje IA</span>
+      </div>
+    </div>
+
+    <div class="tbl-wrap fi d3">
+      <table>
+        <thead>
+          <tr><th>Afectado</th><th>Impacto directo</th><th>Relacion con ODS 12</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Ciudadano testigo</td>
+            <td>Sin canal oficial, sin orientación, sin confirmación de respuesta</td>
+            <td>Consumidor que no cuenta con herramientas para producción responsable</td>
+          </tr>
+          <tr>
+            <td>Ambiente urbano</td>
+            <td>Contaminacion por manejo inadecuado de residuos peligrosos</td>
+            <td>ODS 12.4 — gestion responsable de quimicos y residuos</td>
+          </tr>
+          <tr>
+            <td>Fuerzas de emergencia</td>
+            <td>Sin informacion contextualizada del incidente ni coordinacion entre unidades</td>
+            <td>Desperdicio de recursos de emergencia (ODS 12 — produccion responsable)</td>
+          </tr>
+          <tr>
+            <td>Comunidad industrial</td>
+            <td>Exposicion a riesgos no reportados que se convierten en emergencias mayores</td>
+            <td>Ecosistemas productivos sin mecanismo de respuesta a externalidades</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─────────────────────── REQUERIMIENTOS ─────────────────────── -->
+<section id="requerimientos">
+  <div class="wrap">
+    <div class="sec-header fi">
+      <p class="sec-label">02 — Requerimientos</p>
+      <h2 class="sec-title">Qué debe hacer el sistema</h2>
+      <p class="sec-body">
+        Los requerimientos nacen de la situacion problematica. Cada funcionalidad
+        responde directamente a una necesidad identificada: reportar, orientar, despachar
+        y documentar emergencias de forma coordinada.
+      </p>
+    </div>
+
+    <div class="tbl-wrap fi d1">
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Requerimiento</th><th>Prioridad</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>RF-01</td>
+            <td>Reporte de emergencias con categoría, evidencia multimedia (foto / video / audio) y ubicacion GPS en tiempo real</td>
+            <td><span class="status st-done"><span class="status-dot"></span>Alta</span></td>
+          </tr>
+          <tr>
+            <td>RF-02</td>
+            <td>Chat de emergencias con triaje por IA que clasifica cada turno en sin_riesgo, dudoso o emergencia y emite recomendaciones tacticas</td>
+            <td><span class="status st-done"><span class="status-dot"></span>Alta</span></td>
+          </tr>
+          <tr>
+            <td>RF-03</td>
+            <td>Despacho coordinado de unidades (patrulla, ambulancia, quimico) segun categoria y severidad del incidente</td>
+            <td><span class="status st-done"><span class="status-dot"></span>Alta</span></td>
+          </tr>
+          <tr>
+            <td>RF-04</td>
+            <td>Catalogo de materiales peligrosos e incidentes ambientales con protocolos de actuacion (ODS 12)</td>
+            <td><span class="status st-done"><span class="status-dot"></span>Alta</span></td>
+          </tr>
+          <tr>
+            <td>RF-05</td>
+            <td>Perfil del ciudadano con nombre, telefono, tipo de sangre y ubicacion habitual</td>
+            <td><span class="status st-done"><span class="status-dot"></span>Media</span></td>
+          </tr>
+          <tr>
+            <td>RF-06</td>
+            <td>Gestion de contactos de confianza que reciben notificacion en caso de emergencia activa</td>
+            <td><span class="status st-done"><span class="status-dot"></span>Media</span></td>
+          </tr>
+          <tr>
+            <td>RF-07</td>
+            <td>Notificaciones push para alertas, actualizaciones de estado y confirmacion de despacho</td>
+            <td><span class="status st-warn"><span class="status-dot"></span>Media</span></td>
+          </tr>
+          <tr>
+            <td>RF-08</td>
+            <td>Categorizacion de emergencias: ambiental, medica, criminal — con flujos diferenciados para cada tipo</td>
+            <td><span class="status st-done"><span class="status-dot"></span>Alta</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="fi" style="font-size:.78rem;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--white3);margin-bottom:1.25rem;">Requerimientos no funcionales</h3>
+    <div class="grid-3 fi d1">
+      <div class="card">
+        <div class="card-num">Seguridad</div>
+        <h3>Autenticacion y aislamiento de datos</h3>
+        <p>Autenticacion con email y clave via Supabase Auth. Row Level Security (RLS) en todas las tablas de Postgres. Cada Edge Function valida el JWT antes de procesar la solicitud.</p>
+      </div>
+      <div class="card">
+        <div class="card-num">Rendimiento</div>
+        <h3>Respuesta en menos de 5 segundos</h3>
+        <p>Tiempo de respuesta del sistema menor a 3 segundos. Triaje IA en menos de 5 segundos. maxOutputTokens reducido de 2048 a 1024. Cache de respuesta con TTL de 3 minutos para consultas repetidas.</p>
+      </div>
+      <div class="card">
+        <div class="card-num">Disponibilidad</div>
+        <h3>Modo offline parcial</h3>
+        <p>El catalogo de lugares cercanos y los protocolos de actuacion ante materiales peligrosos estan disponibles sin conexion. El ciudadano puede consultar qué hacer incluso si no tiene datos.</p>
+      </div>
+      <div class="card">
+        <div class="card-num">Usabilidad</div>
+        <h3>Interfaz de emergencia directa</h3>
+        <p>Boton SOS accesible desde cualquier pantalla. Chat conversacional con la IA. KeyboardAvoidingView para Android para evitar que el teclado tape el campo de texto en situaciones de estres.</p>
+      </div>
+      <div class="card">
+        <div class="card-num">Escalabilidad</div>
+        <h3>Arquitectura horizontal</h3>
+        <p>Edge Functions de Supabase escalan horizontalmente sin configuracion adicional. Supabase Realtime gestiona actualizaciones en vivo para multiples ciudadanos y unidades de emergencia simultaneos.</p>
+      </div>
+      <div class="card">
+        <div class="card-num">Mantenibilidad</div>
+        <h3>Modulos compartidos y tipado estricto</h3>
+        <p>Carpeta _shared centraliza la logica de IA, clientes de Supabase y headers CORS. TypeScript en todo el stack. Cada Edge Function tiene responsabilidad unica y puede actualizarse de forma independiente.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─────────────────────── ARQUITECTURA ─────────────────────── -->
+<section id="arquitectura">
+  <div class="wrap">
+    <div class="sec-header fi">
+      <p class="sec-label">03 — Arquitectura</p>
+      <h2 class="sec-title">Tres capas dirigidas<br/>por eventos</h2>
+      <p class="sec-body">
+        La arquitectura separa las responsabilidades en frontend, backend serverless y base de datos.
+        Los eventos de Supabase Realtime conectan las capas sin acoplamiento directo,
+        lo que permite escalar cada capa de forma independiente.
+      </p>
+    </div>
+
+    <div class="arch-stack fi d1">
+      <div class="arch-layer">
+        <div class="arch-layer-label layer-fe">
+          Frontend
+          <span>React Native / Expo SDK 57</span>
+        </div>
+        <div class="chips">
+          <span class="chip">LoginSplashScreen</span>
+          <span class="chip">ProfileScreen</span>
+          <span class="chip">HistoryScreen</span>
+          <span class="chip">SettingsScreen</span>
+          <span class="chip">AIEmergencyChatModal</span>
+          <span class="chip">IncidentMap</span>
+          <span class="chip">BottomNavBar</span>
+          <span class="chip">PlaceSearchModal</span>
+          <span class="chip">PermissionsModal</span>
+          <span class="chip">AppSecurityApp (root)</span>
+        </div>
+      </div>
+      <div class="arch-connector">HTTP / WebSocket (Realtime)</div>
+      <div class="arch-layer">
+        <div class="arch-layer-label layer-be">
+          Backend
+          <span>Supabase Edge Functions / Deno</span>
+        </div>
+        <div class="chips">
+          <span class="chip">ai-chat</span>
+          <span class="chip">ai-respond</span>
+          <span class="chip">analyze-incident</span>
+          <span class="chip">transcribe</span>
+          <span class="chip">contacts</span>
+          <span class="chip">profile</span>
+          <span class="chip">settings</span>
+          <span class="chip">reports</span>
+          <span class="chip">notifications</span>
+          <span class="chip">_shared/ai.ts</span>
+          <span class="chip">_shared/client.ts</span>
+          <span class="chip">_shared/cors.ts</span>
+          <span class="chip">_shared/catalog.ts</span>
+        </div>
+      </div>
+      <div class="arch-connector">SQL / Postgres wire protocol</div>
+      <div class="arch-layer">
+        <div class="arch-layer-label layer-db">
+          Datos
+          <span>Supabase Postgres + Storage + Realtime</span>
+        </div>
+        <div class="chips">
+          <span class="chip">reportes_emergencia</span>
+          <span class="chip">contactos_confianza</span>
+          <span class="chip">usuarios</span>
+          <span class="chip">configuracion_usuario</span>
+          <span class="chip">notificaciones</span>
+          <span class="chip">Storage (foto/video/audio)</span>
+          <span class="chip">Realtime channels</span>
+          <span class="chip">RLS policies</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2 fi d2">
+      <div class="card">
+        <div class="card-num">Patron — Fallback de IA</div>
+        <h3>Gemini primario, OpenRouter como respaldo</h3>
+        <p>
+          La capa de IA en <code style="font-family:var(--mono);font-size:.82em;color:var(--white2);">_shared/ai.ts</code>
+          intenta primero Gemini 3.6 Flash via LangChain. Si recibe error 429 (cuota agotada),
+          ejecuta <code style="font-family:var(--mono);font-size:.82em;color:var(--white2);">runWithProviderFallback</code>
+          que redirige la solicitud a OpenRouter con el modelo inkling:free.
+          El frontend no percibe el cambio de proveedor.
+        </p>
+      </div>
+      <div class="card">
+        <div class="card-num">Patron — Modulos compartidos</div>
+        <h3>_shared evita duplicacion entre funciones</h3>
+        <p>
+          Las 9 Edge Functions comparten logica a traves de la carpeta _shared.
+          Esto significa que un cambio en la capa de IA, en la configuracion de CORS
+          o en el cliente de Supabase se aplica a todas las funciones sin tocar
+          cada una individualmente. Reduce superficie de errores y deuda tecnica.
+        </p>
+      </div>
+      <div class="card">
+        <div class="card-num">Patron — Seguridad por capas</div>
+        <h3>RLS + JWT + Edge Function auth</h3>
+        <p>
+          El aislamiento de datos ocurre en dos niveles. En la base de datos,
+          las politicas RLS de Postgres garantizan que cada usuario solo lee y escribe
+          sus propios registros. En el backend, cada Edge Function extrae y verifica
+          el JWT del header Authorization antes de ejecutar cualquier consulta.
+        </p>
+      </div>
+      <div class="card">
+        <div class="card-num">Patron — Dirigida por eventos</div>
+        <h3>Realtime para actualizaciones en vivo</h3>
+        <p>
+          Los canales de Supabase Realtime propagan cambios en tablas clave
+          (reportes, notificaciones) a todos los clientes suscritos mediante WebSocket.
+          Esto elimina la necesidad de polling desde el frontend y reduce la latencia
+          percibida en el flujo de despacho de unidades.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─────────────────────── STACK ─────────────────────── -->
+<section id="stack">
+  <div class="wrap">
+    <div class="sec-header fi">
+      <p class="sec-label">04 — Stack tecnologico</p>
+      <h2 class="sec-title">Cada herramienta elegida<br/>por una razon concreta</h2>
+      <p class="sec-body">
+        No hay tecnologias de relleno. Cada capa del stack responde a un requerimiento
+        especifico del sistema: multiplataforma, baja latencia, IA multimodal, mapas
+        sin costo de licencia, escalabilidad sin operaciones.
+      </p>
+    </div>
+
+    <div class="tech-grid fi d1">
+      <div class="tech-item">
+        <div class="tech-layer-tag">Frontend</div>
+        <div class="tech-name">React Native</div>
+        <div class="tech-role">iOS y Android desde un unico codebase TypeScript</div>
+      </div>
+      <div class="tech-item">
+        <div class="tech-layer-tag">Frontend</div>
+        <div class="tech-name">Expo SDK 57</div>
+        <div class="tech-role">Plataforma de desarrollo, build y OTA updates</div>
+      </div>
+      <div class="tech-item">
+        <div class="tech-layer-tag">Frontend</div>
+        <div class="tech-name">Expo Router</div>
+        <div class="tech-role">Navegacion basada en archivos, deep linking nativo</div>
+      </div>
+      <div class="tech-item">
+        <div class="tech-layer-tag">Frontend</div>
+        <div class="tech-name">MapLibre RN</div>
+        <div class="tech-role">Mapas con tiles OSM / Carto / Esri sin costo de API</div>
+      </div>
+      <div class="tech-item">
+        <div class="tech-layer-tag">Backend</div>
+        <div class="tech-name">Supabase</div>
+        <div class="tech-role">BaaS: Postgres, Auth, Storage, Realtime, Functions</div>
+      </div>
+      <div class="tech-item">
+        <div class="tech-layer-tag">Backend</div>
+        <div class="tech-name">Edge Functions / Deno</div>
+        <div class="tech-role">Serverless TypeScript ejecutado en el edge de Supabase</div>
+      </div>
+      <div class="tech-item">
+        <div class="tech-layer-tag">Inteligencia artificial</div>
+        <div class="tech-name">Gemini 3.6 Flash</div>
+        <div class="tech-role">Modelo principal para triaje IA con salida estructurada Zod</div>
+      </div>
+      <div class="tech-item">
+        <div class="tech-layer-tag">Inteligencia artificial</div>
+        <div class="tech-name">LangChain</div>
+        <div class="tech-role">Orquestacion de prompts, historial y validacion de schema</div>
+      </div>
+      <div class="tech-item">
+        <div class="tech-layer-tag">Inteligencia artificial</div>
+        <div class="tech-name">OpenRouter</div>
+        <div class="tech-role">Fallback automatico cuando Gemini agota cuota (error 429)</div>
+      </div>
+      <div class="tech-item">
+        <div class="tech-layer-tag">Datos</div>
+        <div class="tech-name">Postgres + RLS</div>
+        <div class="tech-role">Base de datos relacional con aislamiento por usuario</div>
+      </div>
+      <div class="tech-item">
+        <div class="tech-layer-tag">Datos</div>
+        <div class="tech-name">Supabase Storage</div>
+        <div class="tech-role">Almacenamiento de evidencia multimedia (foto/video/audio)</div>
+      </div>
+      <div class="tech-item">
+        <div class="tech-layer-tag">Lenguaje</div>
+        <div class="tech-name">TypeScript</div>
+        <div class="tech-role">Tipado estricto en frontend, backend y tests</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─────────────────────── C4 MODEL ─────────────────────── -->
+<section id="c4">
+  <div class="wrap">
+    <div class="sec-header fi">
+      <p class="sec-label">05 — C4 Model</p>
+      <h2 class="sec-title">Tres niveles de zoom<br/>en la arquitectura</h2>
+      <p class="sec-body">
+        El modelo C4 permite comunicar la arquitectura a audiencias distintas: desde el contexto
+        del sistema hasta el flujo interno de un componente especifico como el triaje IA.
+      </p>
+    </div>
+
+    <div class="c4-grid fi d1">
+
+      <!-- Nivel 1 -->
+      <div class="c4-level">
+        <div class="c4-level-header">
+          <span>Nivel 1 — System Context</span>
+          <span style="color:var(--white3)">Quien usa el sistema y que sistemas externos conecta</span>
+        </div>
+        <div class="c4-level-body">
+          <p style="font-size:.88rem;color:var(--white2);margin-bottom:1.25rem;">
+            El ciudadano interactua con app-security para reportar emergencias y recibir triaje.
+            El sistema se conecta a tres sistemas externos: Supabase para datos y autenticacion,
+            OpenRouter como fallback de IA cuando Gemini alcanza su limite de cuota, y un proveedor
+            de mapas para ubicar incidentes y unidades de emergencia.
+          </p>
+          <div class="c4-flow">
+            <div class="c4-node">Ciudadano</div>
+            <div class="c4-arrow">— usa —</div>
+            <div class="c4-node primary">app-security</div>
+            <div class="c4-arrow">— datos / auth —</div>
+            <div class="c4-node">Supabase</div>
+          </div>
+          <div class="c4-flow" style="margin-top:.75rem;">
+            <div class="c4-node primary">app-security</div>
+            <div class="c4-arrow">— IA primaria —</div>
+            <div class="c4-node">Gemini 3.6 Flash</div>
+            <div class="c4-arrow">— fallback —</div>
+            <div class="c4-node">OpenRouter</div>
+          </div>
+          <div class="c4-flow" style="margin-top:.75rem;">
+            <div class="c4-node primary">app-security</div>
+            <div class="c4-arrow">— tiles —</div>
+            <div class="c4-node">MapLibre / OSM</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nivel 2 -->
+      <div class="c4-level">
+        <div class="c4-level-header">
+          <span>Nivel 2 — Containers</span>
+          <span style="color:var(--white3)">Procesos, stores y sus comunicaciones</span>
+        </div>
+        <div class="c4-level-body">
+          <p style="font-size:.88rem;color:var(--white2);margin-bottom:1.25rem;">
+            La app React Native se comunica con cada Edge Function a traves de HTTP.
+            Cada funcion es un contenedor independiente con una responsabilidad unica.
+            La base de datos Postgres es el store central; Realtime actua como bus de eventos
+            para propagar cambios en tiempo real al frontend sin polling.
+          </p>
+          <div class="grid-2" style="gap:.75rem;">
+            <div class="card" style="padding:1.1rem;">
+              <div class="card-num" style="font-size:.65rem;">Container</div>
+              <h3 style="font-size:.88rem;">React Native App</h3>
+              <p style="font-size:.8rem;">Pantallas + componentes + Expo Router. Se comunica con Edge Functions via HTTP y escucha Realtime via WebSocket.</p>
+            </div>
+            <div class="card" style="padding:1.1rem;">
+              <div class="card-num" style="font-size:.65rem;">Container</div>
+              <h3 style="font-size:.88rem;">ai-chat (Edge Fn)</h3>
+              <p style="font-size:.8rem;">Recibe categoria, historial y evidencia. Construye el prompt, llama a Gemini y retorna triaje estructurado con Zod.</p>
+            </div>
+            <div class="card" style="padding:1.1rem;">
+              <div class="card-num" style="font-size:.65rem;">Container</div>
+              <h3 style="font-size:.88rem;">transcribe (Edge Fn)</h3>
+              <p style="font-size:.8rem;">Convierte audio del ciudadano a texto y lo reenvia al flujo de triaje. Permite reportar emergencias por voz.</p>
+            </div>
+            <div class="card" style="padding:1.1rem;">
+              <div class="card-num" style="font-size:.65rem;">Container</div>
+              <h3 style="font-size:.88rem;">Postgres + Realtime</h3>
+              <p style="font-size:.8rem;">Store central con RLS. Realtime propaga INSERT/UPDATE en reportes y notificaciones a todos los clientes suscritos.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nivel 3 -->
+      <div class="c4-level">
+        <div class="c4-level-header">
+          <span>Nivel 3 — Component: AI Chat Triage</span>
+          <span style="color:var(--white3)">Flujo interno del componente de triaje</span>
+        </div>
+        <div class="c4-level-body">
+          <p style="font-size:.88rem;color:var(--white2);margin-bottom:1.25rem;">
+            El componente de triaje IA es el nucleo del sistema. Cada mensaje del ciudadano
+            desencadena un analisis contextualizado: no se evalua solo el mensaje actual sino
+            el historial completo de la conversacion junto con la evidencia multimedia adjunta.
+            La decision de triaje es incremental y se refina en cada turno.
+          </p>
+          <div class="code-block">
+            <div class="code-top">
+              <span class="code-dot cd-r"></span>
+              <span class="code-dot cd-y"></span>
+              <span class="code-dot cd-g"></span>
+              <span class="code-filename">_shared/ai.ts — runChatTriage</span>
+            </div>
+            <pre>
+<span class="cm">// Entrada por turno</span>
+INPUT  {
+  categoria:  <span class="cs">"ambiental"</span> | <span class="cs">"medica"</span> | <span class="cs">"criminal"</span>,
+  historial:  Message[],          <span class="cm">// conversacion completa</span>
+  evidencia:  File[] | null,      <span class="cm">// foto / video / audio</span>
+}
+
+<span class="cm">// PASO 1: construccion del prompt</span>
+prompt = buildPrompt(systemPrompt, historial, evidencia)
+
+<span class="cm">// PASO 2: llamada al modelo primario</span>
+<span class="ck">try</span> {
+  response = <span class="ck">await</span> geminiFlash.invoke(prompt, {
+    thinkingConfig: <span class="cs">"LOW"</span>,
+    maxOutputTokens: <span class="cn">1024</span>,
+    schema: TriajeZodSchema,     <span class="cm">// salida estructurada</span>
+  })
+} <span class="ck">catch</span> (e) {
+  <span class="ck">if</span> (e.status === <span class="cn">429</span>) {
+    <span class="cm">// cuota agotada — conmuta a OpenRouter</span>
+    response = <span class="ck">await</span> runWithProviderFallback(prompt)
+  }
+}
+
+<span class="cm">// Salida estructurada</span>
+OUTPUT {
+  triage:       <span class="cs">"sin_riesgo"</span> | <span class="cs">"dudoso"</span> | <span class="cs">"emergencia"</span>,
+  unidad:       <span class="cs">"patrulla"</span> | <span class="cs">"ambulancia"</span> | <span class="cs">"quimico"</span>,
+  base:         string,
+  eta_minutos:  number,
+  severidad:    <span class="cs">"baja"</span> | <span class="cs">"media"</span> | <span class="cs">"alta"</span> | <span class="cs">"critica"</span>,
+  tipo_respuesta: string,
+  recomendaciones: string[],
+}</pre>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─────────────────────── METODOLOGIA ─────────────────────── -->
+<section id="metodologia">
+  <div class="wrap">
+    <div class="sec-header fi">
+      <p class="sec-label">06 — Metodologia</p>
+      <h2 class="sec-title">Boehm–Turner y Cockburn<br/>aplicados en 4 iteraciones</h2>
+      <p class="sec-body">
+        El modelo de equilibrio de Boehm y Turner, combinado con la rejilla de Cockburn,
+        orienta proyectos donde los requisitos son incompletos al inicio y el equipo es pequeno.
+        Ambas condiciones aplican a app-security.
+      </p>
+    </div>
+
+    <div class="timeline fi d1">
+      <div class="tl-item">
+        <div class="tl-label">Iteracion 1</div>
+        <div class="tl-line"><div class="tl-dot"></div><div class="tl-track"></div></div>
+        <div class="tl-content">
+          <h4>Base funcional</h4>
+          <p>Login y registro con email y clave. Perfil basico del ciudadano. Catalogo offline
+          de lugares cercanos y protocolos de actuacion disponible sin conexion a internet.
+          Navegacion principal con BottomNavBar.</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-label">Iteracion 2</div>
+        <div class="tl-line"><div class="tl-dot"></div><div class="tl-track"></div></div>
+        <div class="tl-content">
+          <h4>IA y despacho</h4>
+          <p>Chat de emergencias con triaje IA usando Gemini 3.6 Flash y LangChain.
+          Salida estructurada via Zod. Despacho operativo de unidades (patrulla, ambulancia, quimico)
+          con base, ETA y tipo de respuesta.</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-label">Iteracion 3</div>
+        <div class="tl-line"><div class="tl-dot"></div><div class="tl-track"></div></div>
+        <div class="tl-content">
+          <h4>Modulos completos</h4>
+          <p>Modulo ambiental para materiales peligrosos (ODS 12). Mapa con marcadores de incidentes.
+          Contactos de confianza con notificacion automatica. Fallback de IA a OpenRouter
+          con runWithProviderFallback.</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-label">Iteracion 4</div>
+        <div class="tl-line"><div class="tl-dot"></div><div class="tl-track"></div></div>
+        <div class="tl-content">
+          <h4>Optimizaciones y portafolio</h4>
+          <p>Reduccion de maxOutputTokens de 2048 a 1024. Cache de respuestas con TTL de 3 minutos.
+          KeyboardAvoidingView para Android. Migracion de marca SECURE_OS a app-security.
+          Tests unitarios: 15/15 pasando. Documentacion y portafolio.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─────────────────────── ESTRUCTURA ─────────────────────── -->
+<section id="estructura">
+  <div class="wrap">
+    <div class="sec-header fi">
+      <p class="sec-label">07 — Estructura del proyecto</p>
+      <h2 class="sec-title">43 archivos, 9 funciones,<br/>un sistema coherente</h2>
+      <p class="sec-body">
+        La estructura refleja la arquitectura: src/ contiene el frontend organizado por
+        responsabilidad, backend/supabase/functions/ contiene las Edge Functions por dominio.
+        _shared actua como capa de logica transversal.
+      </p>
+    </div>
+    <div class="code-block fi d1">
+      <div class="code-top">
+        <span class="code-dot cd-r"></span>
+        <span class="code-dot cd-y"></span>
+        <span class="code-dot cd-g"></span>
+        <span class="code-filename">app-security/ — tree</span>
+      </div>
+      <pre>
+app-security/
+<span class="cm">├── app.config.js              # configuracion Expo (nombre, bundle ID, plugins)</span>
+<span class="cm">├── package.json               # dependencias y scripts</span>
+<span class="cm">│</span>
+├── src/
+│   ├── app/
+│   │   └── index.tsx          <span class="cm"># punto de entrada — AppSecurityApp</span>
+│   ├── screens/
+│   │   ├── LoginSplashScreen.tsx    <span class="cm"># login + registro</span>
+│   │   ├── ProfileScreen.tsx        <span class="cm"># edicion de perfil</span>
+│   │   ├── HistoryScreen.tsx        <span class="cm"># historial de reportes</span>
+│   │   └── SettingsScreen.tsx       <span class="cm"># configuracion de la app</span>
+│   ├── components/
+│   │   ├── AppSecurityApp.tsx       <span class="cm"># root component con navegacion</span>
+│   │   ├── AIEmergencyChatModal.tsx <span class="cm"># chat IA + triaje  <-- core</span>
+│   │   ├── PlaceSearchModal.tsx     <span class="cm"># busqueda de lugares</span>
+│   │   ├── BottomNavBar.tsx         <span class="cm"># navegacion inferior</span>
+│   │   └── PermissionsModal.tsx     <span class="cm"># permisos GPS / camara / micro</span>
+│   ├── constants/
+│   │   ├── prevencionAmbiental.ts   <span class="cm"># textos y protocolos ODS 12</span>
+│   │   └── industrialCatalog.ts     <span class="cm"># catalogo de plantas industriales</span>
+│   └── data/
+│       └── nearbyPlaces.ts          <span class="cm"># datos offline de lugares cercanos</span>
+<span class="cm">│</span>
+└── backend/
+    └── supabase/
+        ├── config.toml              <span class="cm"># configuracion local Supabase</span>
+        └── functions/
+            ├── ai-chat/             <span class="cm"># triaje IA por turno  <-- core</span>
+            ├── ai-respond/          <span class="cm"># respuesta de seguimiento IA</span>
+            ├── analyze-incident/    <span class="cm"># analisis de contexto de emergencia</span>
+            ├── transcribe/          <span class="cm"># audio a texto</span>
+            ├── contacts/            <span class="cm"># CRUD contactos de confianza</span>
+            ├── profile/             <span class="cm"># CRUD perfil de ciudadano</span>
+            ├── reports/             <span class="cm"># CRUD reportes de emergencia</span>
+            ├── settings/            <span class="cm"># configuracion del usuario</span>
+            ├── notifications/       <span class="cm"># CRUD notificaciones push</span>
+            └── _shared/
+                ├── ai.ts            <span class="cm"># capa IA: Gemini + fallback  <-- core</span>
+                ├── catalog.ts       <span class="cm"># mappings del catalogo de incidentes</span>
+                ├── client.ts        <span class="cm"># clientes Supabase (admin + anon)</span>
+                ├── cors.ts          <span class="cm"># headers CORS para Edge Functions</span>
+                └── ai.test.ts       <span class="cm"># tests unitarios: 15/15</span></pre>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─────────────────────── RESULTADOS ─────────────────────── -->
+<section id="resultados">
+  <div class="wrap">
+    <div class="sec-header fi">
+      <p class="sec-label">08 — Resultados</p>
+      <h2 class="sec-title">Lo que funciona,<br/>lo que queda pendiente</h2>
+      <p class="sec-body">
+        El sistema esta operativo en todos sus modulos core. Las funciones desplegadas en
+        Supabase pasan los tests unitarios. Las optimizaciones de rendimiento estan aplicadas.
+      </p>
+    </div>
+
+    <div class="grid-2 fi d1">
+      <div>
+        <h3 style="font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:#6ecf97;margin-bottom:1rem;">Implementado</h3>
+        <ul class="result-list">
+          <li><span class="rl-mark">[OK]</span><span class="rl-text">Sistema completo: autenticacion, perfil, reportes, chat IA, mapa, contactos, settings</span></li>
+          <li><span class="rl-mark">[OK]</span><span class="rl-text">Arquitectura de tres capas + dirigida por eventos funcional y desplegada</span></li>
+          <li><span class="rl-mark">[OK]</span><span class="rl-text">Triaje IA con Gemini 3.6 Flash y fallback automatico a OpenRouter inkling:free</span></li>
+          <li><span class="rl-mark">[OK]</span><span class="rl-text">Modulo ambiental ODS 12 con catalogo de materiales peligrosos y protocolos de actuacion</span></li>
+          <li><span class="rl-mark">[OK]</span><span class="rl-text">9 Edge Functions desplegadas en Supabase con JWT verification</span></li>
+          <li><span class="rl-mark">[OK]</span><span class="rl-text">Tests unitarios: 15/15 pasando, incluyendo tests del fallback de IA</span></li>
+          <li><span class="rl-mark">[OK]</span><span class="rl-text">Optimizaciones: cache 3 min TTL, maxOutputTokens 1024, KeyboardAvoidingView Android</span></li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--white3);margin-bottom:1rem;">Pendiente</h3>
+        <ul class="result-list">
+          <li><span class="rl-mark" style="color:var(--white3)">[ ]</span><span class="rl-text">EAS build — generacion del APK para distribucion en dispositivos Android</span></li>
+          <li><span class="rl-mark" style="color:var(--white3)">[ ]</span><span class="rl-text">Testing en dispositivo fisico real con GPS y camara activos</span></li>
+          <li><span class="rl-mark" style="color:var(--white3)">[ ]</span><span class="rl-text">Configurar OPENROUTER_API_KEY en Supabase secrets del entorno de produccion</span></li>
+          <li><span class="rl-mark" style="color:var(--white3)">[ ]</span><span class="rl-text">Fuentes de validacion primaria: entrevistas y observacion de campo</span></li>
+        </ul>
+
+        <h3 style="font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--white3);margin:2rem 0 1rem;">Decisiones tecnicas clave</h3>
+        <ul class="result-list">
+          <li><span class="rl-mark">[D1]</span><span class="rl-text">Triaje por turno con historial completo — la IA analiza el contexto acumulado, no solo el ultimo mensaje</span></li>
+          <li><span class="rl-mark">[D2]</span><span class="rl-text">Fallback automatico de IA — experiencia con error 429 en cuota gratuita de Gemini durante desarrollo</span></li>
+          <li><span class="rl-mark">[D3]</span><span class="rl-text">_shared como capa de logica transversal — evita duplicacion entre las 9 Edge Functions</span></li>
+          <li><span class="rl-mark">[D4]</span><span class="rl-text">MapLibre RN con tiles OSM — mapas sin costo de API key ni restriccion de uso</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="margin-top:2.5rem;" class="fi d2">
+      <h3 style="font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--white3);margin-bottom:1.25rem;">Hoja de ruta — estado final</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th>Fase</th><th>Descripcion</th><th>Estado</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>FASE 1</td>
+              <td>Identificacion del problema ODS 12 con fuente primaria documentada</td>
+              <td><span class="status st-warn"><span class="status-dot"></span>Documentar con fuente real</span></td>
+            </tr>
+            <tr>
+              <td>FASE 2</td>
+              <td>Requerimientos funcionales (RF-01 a RF-08) y no funcionales definidos e implementados</td>
+              <td><span class="status st-done"><span class="status-dot"></span>Implementado</span></td>
+            </tr>
+            <tr>
+              <td>FASE 3</td>
+              <td>Propuesta innovadora: triaje IA por turno + despacho coordinado</td>
+              <td><span class="status st-done"><span class="status-dot"></span>Implementada</span></td>
+            </tr>
+            <tr>
+              <td>FASE 4</td>
+              <td>Metodologia Boehm-Turner y Cockburn aplicada en 4 iteraciones</td>
+              <td><span class="status st-done"><span class="status-dot"></span>Aplicada</span></td>
+            </tr>
+            <tr>
+              <td>FASE 5</td>
+              <td>Arquitectura tres capas + dirigida por eventos desplegada en Supabase</td>
+              <td><span class="status st-done"><span class="status-dot"></span>Implementada</span></td>
+            </tr>
+            <tr>
+              <td>FASE 6</td>
+              <td>C4 Model: contexto, contenedores y componente de triaje documentados</td>
+              <td><span class="status st-done"><span class="status-dot"></span>Documentado</span></td>
+            </tr>
+            <tr>
+              <td>FASE 7</td>
+              <td>Implementacion real: 43 archivos, 9 Edge Functions, 15 tests pasando</td>
+              <td><span class="status st-done"><span class="status-dot"></span>Completo</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─────────────────────── ODS ─────────────────────── -->
+<section id="ods">
+  <div class="wrap">
+    <div class="sec-header fi">
+      <p class="sec-label">09 — ODS 12</p>
+      <h2 class="sec-title">Produccion y consumo responsable<br/>como eje del sistema</h2>
+      <p class="sec-body">
+        El modulo ambiental de app-security aborda directamente las metas 12.4 y 12.5
+        del ODS 12: gestion responsable de quimicos, reduccion del desperdicio y
+        prevencion de la contaminacion del suelo y el agua.
+      </p>
+    </div>
+
+    <div class="ods-block fi d1">
+      <div class="ods-num">12</div>
+      <div class="ods-right">
+        <h3>Consumo y Produccion Responsables</h3>
+        <p>
+          En zonas urbanas con actividad industrial, los incidentes de materiales peligrosos
+          son una externalidad frecuente y subatendida. La ausencia de un canal de reporte
+          rapido significa que vertidos quimicos, derrames industriales y residuos peligrosos
+          permanecen sin atencion durante horas. El modulo ambiental de app-security cierra
+          esa brecha conectando al ciudadano directamente con una unidad quimica especializada,
+          reduciendo el tiempo de contencion y el impacto ambiental de cada incidente.
+        </p>
+        <div class="ods-items">
+          <div class="ods-item">
+            <strong>ODS 12.4</strong>
+            Gestion ecologicamente racional de quimicos y residuos en todo su ciclo de vida
+          </div>
+          <div class="ods-item">
+            <strong>ODS 12.5</strong>
+            Reduccion sustancial de la generacion de desechos mediante prevencion y reportes tempranos
+          </div>
+          <div class="ods-item">
+            <strong>Despacho quimico</strong>
+            Triaje IA detecta incidentes ambientales y despacha unidades quimicas con ETA y protocolo
+          </div>
+          <div class="ods-item">
+            <strong>Catalogo offline</strong>
+            Protocolos de actuacion para materiales peligrosos disponibles sin conexion a internet
+          </div>
+          <div class="ods-item">
+            <strong>Registro de incidentes</strong>
+            Cada reporte queda almacenado con ubicacion, evidencia multimedia y resultado del triaje
+          </div>
+          <div class="ods-item">
+            <strong>Orientacion ciudadana</strong>
+            La IA emite recomendaciones tacticas especificas para incidentes con materiales peligrosos
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─────────────────────── FOOTER ─────────────────────── -->
+<footer>
+  <div class="footer-left">
+    <div class="footer-logo">
+      <span class="dot-f"></span>
+      app-security
+    </div>
+    <div class="footer-sub">Sistema de alerta y respuesta tactica — ODS 12</div>
+  </div>
+  <div class="footer-right">
+    React Native · Expo SDK 57 · Supabase · Gemini AI<br/>
+    OpenRouter · MapLibre · TypeScript · Deno<br/>
+    <span style="color:var(--border);margin-top:.4rem;display:block;">Portafolio Digital — Produccion y Consumo Responsables</span>
+  </div>
+</footer>
+
+<button id="top-btn" aria-label="Volver al inicio">^</button>
+
+<!-- ══════════════════════════════════════════════
+     JS
+══════════════════════════════════════════════ -->
+<script>
+  /* progress bar */
+  const prog = document.getElementById('progress');
+  const nav  = document.getElementById('nav');
+  const topBtn = document.getElementById('top-btn');
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.nav-menu a');
+
+  window.addEventListener('scroll', () => {
+    const sy = window.scrollY;
+    const dh = document.documentElement.scrollHeight - window.innerHeight;
+    prog.style.width = (sy / dh * 100) + '%';
+    nav.classList.toggle('scrolled', sy > 10);
+    topBtn.classList.toggle('visible', sy > 500);
+
+    /* active nav */
+    let current = '';
+    sections.forEach(s => { if (sy >= s.offsetTop - 80) current = s.id; });
+    navLinks.forEach(a => {
+      a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+    });
+  }, { passive: true });
+
+  /* burger */
+  const burger = document.getElementById('burger');
+  const menu   = document.getElementById('nav-menu');
+  burger.addEventListener('click', () => {
+    burger.classList.toggle('open');
+    menu.classList.toggle('open');
+  });
+  menu.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => {
+      burger.classList.remove('open');
+      menu.classList.remove('open');
+    });
+  });
+
+  /* smooth scroll with offset */
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const target = document.querySelector(a.getAttribute('href'));
+      if (!target) return;
+      e.preventDefault();
+      window.scrollTo({ top: target.offsetTop - 64, behavior: 'smooth' });
+    });
+  });
+
+  /* scroll to top */
+  topBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+  /* fade-in on scroll */
+  const fiObs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); fiObs.unobserve(e.target); } });
+  }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
+  document.querySelectorAll('.fi').forEach(el => fiObs.observe(el));
+
+  /* counters */
+  function counter(el, target) {
+    let start = null;
+    const step = ts => {
+      if (!start) start = ts;
+      const p = Math.min((ts - start) / 1200, 1);
+      const ease = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(ease * target);
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+  const cntObs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        counter(e.target, parseInt(e.target.dataset.target));
+        cntObs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.5 });
+  document.querySelectorAll('[data-target]').forEach(el => cntObs.observe(el));
+</script>
+
+</body>
+</html>
